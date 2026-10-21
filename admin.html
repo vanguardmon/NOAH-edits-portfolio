@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NOAH edits | Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #090b10;
+      --panel: #141821;
+      --line: #2b303b;
+      --gold: #d6ad62;
+      --text: #f4f4f5;
+      --muted: #a6adbb;
+      --danger: #ff7777;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      background: var(--bg); color: var(--text);
+      font: 15px/1.5 Arial, sans-serif;
+    }
+    main { max-width: 950px; margin: auto; }
+    h1 { margin-bottom: 4px; }
+    h1 span { color: var(--gold); }
+    .muted { color: var(--muted); }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; padding: 20px; margin: 18px 0;
+    }
+    label { display: block; margin: 12px 0 5px; color: var(--muted); }
+    input, select {
+      width: 100%; padding: 12px; border-radius: 8px;
+      border: 1px solid var(--line); background: #0d1017;
+      color: var(--text); font-size: 15px;
+    }
+    button {
+      padding: 10px 15px; border: 0; border-radius: 8px;
+      background: var(--gold); color: #17130b;
+      font-weight: 700; cursor: pointer; margin: 8px 6px 0 0;
+    }
+    button.secondary { background: #303746; color: white; }
+    button.danger { background: #54272b; color: #fff; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .hidden { display: none !important; }
+    .status { white-space: pre-wrap; margin-top: 12px; }
+    .video {
+      padding: 14px 0; border-bottom: 1px solid var(--line);
+      overflow-wrap: anywhere;
+    }
+    .video:last-child { border-bottom: 0; }
+    .top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    a { color: var(--gold); }
+    @media (max-width: 600px) { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>NOAH <span>edits</span></h1>
+  <p class="muted">Portfolio Administration</p>
+
+  <section id="loginPanel" class="panel">
+    <h2>Admin Login</h2>
+    <form id="loginForm">
+      <label for="email">Admin email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password"
+             autocomplete="current-password" required>
+      <button id="loginButton" type="submit">Login securely</button>
+    </form>
+    <p id="loginStatus" class="status" role="status"></p>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="panel">
+      <div class="top">
+        <div>
+          <h2>Video Projects</h2>
+          <p class="muted">Signed in: <span id="adminEmail"></span></p>
+        </div>
+        <button id="logoutButton" class="secondary">Logout</button>
+      </div>
+      <p class="muted">
+        Changes here are saved in Supabase. Your public website must also
+        read this table to display database changes automatically.
+      </p>
+    </div>
+
+    <section class="panel">
+      <h2 id="formHeading">Add a video</h2>
+      <form id="videoForm">
+        <input id="videoId" type="hidden">
+        <label for="title">Project title</label>
+        <input id="title" maxlength="120" required>
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="cinematic">Cinematic Edits</option>
+          <option value="reels">Reels / Shorts</option>
+          <option value="commercial">Commercial Ads</option>
+          <option value="other">Other Projects</option>
+        </select>
+        <label for="youtubeUrl">YouTube video link</label>
+        <input id="youtubeUrl" type="url" placeholder="https://youtu.be/..."
+               maxlength="500" required>
+        <button id="saveButton" type="submit">Save video</button>
+        <button id="cancelButton" type="button" class="secondary hidden">
+          Cancel edit
+        </button>
+      </form>
+      <p id="formStatus" class="status" role="status"></p>
+    </section>
+
+    <section class="panel">
+      <div class="top">
+        <h2>Saved projects</h2>
+        <button id="refreshButton" class="secondary">Refresh</button>
+      </div>
+      <div id="videoList">Loading projects…</div>
+      <p id="listStatus" class="status" role="status"></p>
+    </section>
+  </section>
+</main>
+
+<script>
+(() => {
+  // Replace ONLY these two values with your Supabase project details.
+  const SUPABASE_URL = "https://ibpditpbprwviuveplnt.supabase.co/rest/v1/";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_pQEAReBcARVo1_kwEXwNwQ_LlZ0T6Vj";
+
+  const $ = (id) => document.getElementById(id);
+  const loginPanel = $("loginPanel");
+  const dashboard = $("dashboard");
+
+  if (
+    !SUPABASE_URL.startsWith("https://") ||
+    SUPABASE_URL.includes("YOUR_SUPABASE") ||
+    SUPABASE_PUBLISHABLE_KEY.includes("YOUR_SUPABASE")
+  ) {
+    $("loginStatus").textContent =
+      "Setup required: add your Supabase Project URL and Publishable key in admin.html.";
+    $("loginButton").disabled = true;
+    return;
+  }
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
+  );
+
+  let busy = false;
+
+  function setStatus(id, message) {
+    $(id).textContent = message || "";
+  }
+
+  function setBusy(value) {
+    busy = value;
+    document.querySelectorAll("button").forEach((button) => {
+      button.disabled = value;
+    });
+  }
+
+  function validYouTubeUrl(value) {
+    try {
+      const url = new URL(value);
+      if (url.protocol !== "https:") return false;
+      const host = url.hostname.toLowerCase().replace(/^www\./, "");
+      return (
+        ["youtube.com", "m.youtube.com", "youtu.be"].includes(host) &&
+        Boolean(url.pathname.replaceAll("/", ""))
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  async function requireAdmin(user) {
+    // This is an extra UI check, NOT a replacement for Supabase RLS.
+    if (!user || user.app_metadata?.role !== "admin") {
+      await db.auth.signOut();
+      throw new Error(
+        "This account is not authorized as an admin. Check the server-side role and sign in again."
+      );
+    }
+  }
+
+  function showLogin() {
+    loginPanel.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+  }
+
+  async function showDashboard(user) {
+    await requireAdmin(user);
+    $("adminEmail").textContent = user.email || "Admin";
+    loginPanel.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    await loadVideos();
+  }
+
+  function resetForm() {
+    $("videoForm").reset();
+    $("videoId").value = "";
+    $("formHeading").textContent = "Add a video";
+    $("saveButton").textContent = "Save video";
+    $("cancelButton").classList.add("hidden");
+    setStatus("formStatus", "");
+  }
+
+  function editVideo(video) {
+    $("videoId").value = video.id;
+    $("title").value = video.title || "";
+    $("category").value = video.category || "other";
+    $("youtubeUrl").value = video.youtube_url || "";
+    $("formHeading").textContent = "Edit video";
+    $("saveButton").textContent = "Save changes";
+    $("cancelButton").classList.remove("hidden
