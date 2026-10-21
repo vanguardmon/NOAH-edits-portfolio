@@ -305,7 +305,7 @@
     // https://drive.google.com/file/d/1AbCdEf123456/view
     // The FILE ID is: 1AbCdEf123456
     const projects = [
-      { title: "Wedding Cinematic Film", category: "cinematic", label: "Cinematic Edits", driveId: "" },
+      { title: "Wedding Cinematic Film", category: "cinematic", label: "Cinematic Edits", youtubeId: "-b1H8Eg2Mrc" },
       { title: "Creative Reel", category: "reels", label: "Reels / Shorts", driveId: "" },
       { title: "Brand Commercial", category: "ads", label: "Commercial Ads", driveId: "" },
       { title: "Creative Project", category: "other", label: "Other Projects", driveId: "" }
@@ -336,16 +336,22 @@
         const link = document.createElement("a");
         link.className = "watch";
         link.href = "#work";
-        link.textContent = p.driveId ? "Watch Film ↗" : "Video link to be added";
+        link.textContent = (p.youtubeId || p.driveId) ? "Watch Film ↗" : "Video link to be added";
         link.addEventListener("click", e => {
           e.preventDefault();
-          if (!p.driveId) {
-            alert("Add this video's Google Drive file ID in the projects list in index.html first.");
-            return;
-          }
-          document.getElementById("modalTitle").textContent = p.title;
-          frame.src = "https://drive.google.com/file/d/" + encodeURIComponent(p.driveId) + "/preview";
-          modal.classList.add("open");
+          if (!p.youtubeId && !p.driveId) {
+    alert("Add a video link first.");
+    return;
+}
+document.getElementById("modalTitle").textContent = p.title;
+
+if (p.youtubeId) {
+    frame.src = "https://www.youtube.com/embed/" + encodeURIComponent(p.youtubeId) + "?autoplay=1";
+} else {
+    frame.src = "https://drive.google.com/file/d/" + encodeURIComponent(p.driveId) + "/preview";
+}
+
+modal.classList.add("open");
         });
         thumb.style.cursor = "pointer";
         thumb.addEventListener("click", () => link.click());
