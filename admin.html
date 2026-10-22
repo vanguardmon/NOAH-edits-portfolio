@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,7 +14,6 @@
       --gold: #d6ad62;
       --text: #f4f4f5;
       --muted: #a6adbb;
-      --danger: #ff7777;
     }
     * { box-sizing: border-box; }
     body {
@@ -22,7 +22,7 @@
       font: 15px/1.5 Arial, sans-serif;
     }
     main { max-width: 950px; margin: auto; }
-    h1 { margin-bottom: 4px; }
+    h1 { margin: 0 0 4px; }
     h1 span { color: var(--gold); }
     .muted { color: var(--muted); }
     .panel {
@@ -32,26 +32,22 @@
     label { display: block; margin: 12px 0 5px; color: var(--muted); }
     input, select {
       width: 100%; padding: 12px; border-radius: 8px;
-      border: 1px solid var(--line); background: #0d1017;
+      border: 1px solid var(--line); background: #0d1016;
       color: var(--text); font-size: 15px;
     }
     button {
       padding: 10px 15px; border: 0; border-radius: 8px;
-      background: var(--gold); color: #17130b;
-      font-weight: 700; cursor: pointer; margin: 8px 6px 0 0;
+      background: var(--gold); color: #111; font-weight: 700;
+      cursor: pointer; margin: 8px 5px 0 0;
     }
     button.secondary { background: #303746; color: white; }
-    button.danger { background: #54272b; color: #fff; }
+    button.danger { background: #8d333b; color: white; }
     button:disabled { opacity: .5; cursor: wait; }
     .hidden { display: none !important; }
-    .status { white-space: pre-wrap; margin-top: 12px; }
-    .video {
-      padding: 14px 0; border-bottom: 1px solid var(--line);
-      overflow-wrap: anywhere;
-    }
+    .status { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 12px; }
+    .video { padding: 14px 0; border-bottom: 1px solid var(--line); }
     .video:last-child { border-bottom: 0; }
     .top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    a { color: var(--gold); }
     @media (max-width: 600px) { body { padding: 12px; } }
   </style>
 </head>
@@ -66,8 +62,7 @@
       <label for="email">Admin email</label>
       <input id="email" type="email" autocomplete="username" required>
       <label for="password">Password</label>
-      <input id="password" type="password"
-             autocomplete="current-password" required>
+      <input id="password" type="password" autocomplete="current-password" required>
       <button id="loginButton" type="submit">Login securely</button>
     </form>
     <p id="loginStatus" class="status" role="status"></p>
@@ -80,15 +75,12 @@
           <h2>Video Projects</h2>
           <p class="muted">Signed in: <span id="adminEmail"></span></p>
         </div>
-        <button id="logoutButton" class="secondary">Logout</button>
+        <button id="logoutButton" class="secondary" type="button">Logout</button>
       </div>
-      <p class="muted">
-        Changes here are saved in Supabase. Your public website must also
-        read this table to display database changes automatically.
-      </p>
+      <p class="muted">Projects are saved in Supabase. Your public website must also read this table to show changes.</p>
     </div>
 
-    <section class="panel">
+    <div class="panel">
       <h2 id="formHeading">Add a video</h2>
       <form id="videoForm">
         <input id="videoId" type="hidden">
@@ -102,34 +94,33 @@
           <option value="other">Other Projects</option>
         </select>
         <label for="youtubeUrl">YouTube video link</label>
-        <input id="youtubeUrl" type="url" placeholder="https://youtu.be/..."
-               maxlength="500" required>
+        <input id="youtubeUrl" type="url" placeholder="https://youtu.be/..." maxlength="500" required>
         <button id="saveButton" type="submit">Save video</button>
-        <button id="cancelButton" type="button" class="secondary hidden">
-          Cancel edit
-        </button>
+        <button id="cancelButton" type="button" class="secondary hidden">Cancel edit</button>
       </form>
       <p id="formStatus" class="status" role="status"></p>
-    </section>
+    </div>
 
-    <section class="panel">
+    <div class="panel">
       <div class="top">
         <h2>Saved projects</h2>
-        <button id="refreshButton" class="secondary">Refresh</button>
+        <button id="refreshButton" class="secondary" type="button">Refresh</button>
       </div>
-      <div id="videoList">Loading projects…</div>
+      <div id="videoList">Loading projects...</div>
       <p id="listStatus" class="status" role="status"></p>
-    </section>
+    </div>
   </section>
 </main>
 
 <script>
 (() => {
-  // Replace ONLY these two values with your Supabase project details.
-  const SUPABASE_URL = "https://ibpditpbprwviuveplnt.supabase.co"
+  "use strict";
+
+  // Replace these two values with your Supabase project details.
+  const SUPABASE_URL = "https://ibpditpbprwviuveplnt.supabase.co";
   const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_pQEAReBcARVo1_kwEXwNwQ_LlZ0T6Vj";
 
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
   const loginPanel = $("loginPanel");
   const dashboard = $("dashboard");
 
@@ -164,7 +155,7 @@
 
   function setBusy(value) {
     busy = value;
-    document.querySelectorAll("button").forEach((button) => {
+    document.querySelectorAll("button").forEach(button => {
       button.disabled = value;
     });
   }
@@ -184,11 +175,10 @@
   }
 
   async function requireAdmin(user) {
-    // This is an extra UI check, NOT a replacement for Supabase RLS.
     if (!user || user.app_metadata?.role !== "admin") {
       await db.auth.signOut();
       throw new Error(
-        "This account is not authorized as an admin. Check the server-side role and sign in again."
+        "This account is not authorized as an admin. Check the admin role in Supabase, then sign in again."
       );
     }
   }
@@ -222,4 +212,178 @@
     $("youtubeUrl").value = video.youtube_url || "";
     $("formHeading").textContent = "Edit video";
     $("saveButton").textContent = "Save changes";
-    $("cancelButton").classList.remove("hidden
+    $("cancelButton").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function loadVideos() {
+    setStatus("listStatus", "Loading projects...");
+    $("videoList").replaceChildren();
+
+    const { data, error } = await db
+      .from("portfolio_videos")
+      .select("id,title,category,youtube_url,created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setStatus("listStatus", "Could not load projects: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      $("videoList").textContent = "No projects yet. Add your first video above.";
+      setStatus("listStatus", "");
+      return;
+    }
+
+    data.forEach(video => {
+      const item = document.createElement("div");
+      item.className = "video";
+
+      const heading = document.createElement("strong");
+      heading.textContent = video.title || "Untitled project";
+
+      const details = document.createElement("p");
+      details.className = "muted";
+      details.textContent = (video.category || "other") + " · " + (video.youtube_url || "");
+
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "secondary";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => editVideo(video));
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (busy || !confirm("Delete this project?")) return;
+        setBusy(true);
+        try {
+          const { error } = await db
+            .from("portfolio_videos")
+            .delete()
+            .eq("id", video.id);
+          if (error) throw error;
+          resetForm();
+          await loadVideos();
+          setStatus("listStatus", "Project deleted.");
+        } catch (error) {
+          setStatus("listStatus", "Delete failed: " + error.message);
+        } finally {
+          setBusy(false);
+        }
+      });
+
+      item.append(heading, details, edit, remove);
+      $("videoList").append(item);
+    });
+
+    setStatus("listStatus", "Projects loaded: " + data.length);
+  }
+
+  $("loginForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setStatus("loginStatus", "Signing in...");
+
+    try {
+      const { data, error } = await db.auth.signInWithPassword({
+        email: $("email").value.trim(),
+        password: $("password").value
+      });
+      if (error) throw error;
+      await showDashboard(data.user);
+      setStatus("loginStatus", "");
+    } catch (error) {
+      showLogin();
+      setStatus("loginStatus", "Login failed: " + error.message);
+    } finally {
+      $("password").value = "";
+      setBusy(false);
+    }
+  });
+
+  $("videoForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    if (busy) return;
+
+    const title = $("title").value.trim();
+    const category = $("category").value;
+    const youtube_url = $("youtubeUrl").value.trim();
+    const id = $("videoId").value;
+
+    if (!validYouTubeUrl(youtube_url)) {
+      setStatus("formStatus", "Enter a valid HTTPS YouTube video link.");
+      return;
+    }
+
+    setBusy(true);
+    setStatus("formStatus", "Saving project...");
+
+    try {
+      const { data: sessionData } = await db.auth.getSession();
+      if (!sessionData.session) throw new Error("Please sign in again.");
+
+      const { error } = id
+        ? await db.from("portfolio_videos")
+            .update({ title, category, youtube_url }).eq("id", id)
+        : await db.from("portfolio_videos")
+            .insert([{ title, category, youtube_url }]);
+
+      if (error) throw error;
+
+      resetForm();
+      await loadVideos();
+      setStatus("formStatus", "Project saved successfully.");
+    } catch (error) {
+      setStatus("formStatus", "Save failed: " + error.message);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $("cancelButton").addEventListener("click", resetForm);
+  $("refreshButton").addEventListener("click", loadVideos);
+
+  $("logoutButton").addEventListener("click", async () => {
+    setBusy(true);
+    try {
+      const { error } = await db.auth.signOut();
+      if (error) throw error;
+      showLogin();
+      setStatus("loginStatus", "You have logged out.");
+      resetForm();
+    } catch (error) {
+      setStatus("listStatus", "Logout failed: " + error.message);
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  async function init() {
+    try {
+      const { data, error } = await db.auth.getSession();
+      if (error) throw error;
+      if (data.session) {
+        await showDashboard(data.session.user);
+      } else {
+        showLogin();
+      }
+    } catch (error) {
+      showLogin();
+      setStatus("loginStatus", "Setup error: " + error.message);
+    }
+  }
+
+  db.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT" || !session) showLogin();
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
