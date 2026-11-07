@@ -93,16 +93,8 @@
           <option value="commercial">Commercial Ads</option>
           <option value="other">Other Projects</option>
         </select>
-        <label for="videoType">Video source</label>
-        <select id="videoType" required>
-          <option value="youtube">YouTube</option>
-          <option value="drive">Google Drive</option>
-        </select>
-        <label for="videoUrl">Video link</label>
-        <input id="videoUrl" type="url" placeholder="YouTube or Google Drive share link" maxlength="1000" required>
-        <label for="thumbnailUrl">Thumbnail image URL (optional)</label>
-        <input id="thumbnailUrl" type="url" placeholder="https://...">
-        <p class="muted">For Google Drive: upload the video in Drive, set General access to “Anyone with the link – Viewer”, then paste its share link. For YouTube, paste the normal video URL.</p>
+        <label for="youtubeUrl">YouTube video link</label>
+        <input id="youtubeUrl" type="url" placeholder="https://youtu.be/..." maxlength="500" required>
         <button id="saveButton" type="submit">Save video</button>
         <button id="cancelButton" type="button" class="secondary hidden">Cancel edit</button>
       </form>
@@ -174,7 +166,7 @@
       if (url.protocol !== "https:") return false;
       const host = url.hostname.toLowerCase().replace(/^www\./, "");
       return (
-        ["youtube.com", "m.youtube.com", "youtu.be", "drive.google.com"].includes(host) &&
+        ["youtube.com", "m.youtube.com", "youtu.be"].includes(host) &&
         Boolean(url.pathname.replaceAll("/", ""))
       );
     } catch {
@@ -217,9 +209,7 @@
     $("videoId").value = video.id;
     $("title").value = video.title || "";
     $("category").value = video.category || "other";
-    $("videoType").value = video.video_type || "youtube";
-    $("videoUrl").value = video.video_url || video.youtube_url || "";
-    $("thumbnailUrl").value = video.thumbnail_url || "";
+    $("youtubeUrl").value = video.youtube_url || "";
     $("formHeading").textContent = "Edit video";
     $("saveButton").textContent = "Save changes";
     $("cancelButton").classList.remove("hidden");
@@ -232,7 +222,7 @@
 
     const { data, error } = await db
       .from("portfolio_videos")
-      .select("id,title,category,video_type,video_url,thumbnail_url,youtube_url,created_at")
+      .select("id,title,category,youtube_url,created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -255,7 +245,7 @@
 
       const details = document.createElement("p");
       details.className = "muted";
-      details.textContent = (video.category || "other") + " · " + (video.video_type || "youtube") + " · " + (video.video_url || video.youtube_url || "");
+      details.textContent = (video.category || "other") + " · " + (video.youtube_url || "");
 
       const edit = document.createElement("button");
       edit.type = "button";
@@ -322,20 +312,11 @@
 
     const title = $("title").value.trim();
     const category = $("category").value;
-    const video_type = $("videoType").value;
-    const video_url = $("videoUrl").value.trim();
-    const thumbnail_url = $("thumbnailUrl").value.trim();
+    const youtube_url = $("youtubeUrl").value.trim();
     const id = $("videoId").value;
 
-    try {
-      const parsed = new URL(video_url);
-      const host = parsed.hostname.toLowerCase().replace(/^www\\./, "");
-      if (parsed.protocol !== "https:") throw new Error();
-      if (video_type === "youtube" && !["youtube.com","m.youtube.com","youtu.be"].includes(host)) throw new Error();
-      if (video_type === "drive" && host !== "drive.google.com") throw new Error();
-      if (thumbnail_url && new URL(thumbnail_url).protocol !== "https:") throw new Error();
-    } catch {
-      setStatus("formStatus", "Check that the link matches the selected source and uses HTTPS.");
+    if (!validYouTubeUrl(youtube_url)) {
+      setStatus("formStatus", "Enter a valid HTTPS YouTube video link.");
       return;
     }
 
@@ -348,9 +329,9 @@
 
       const { error } = id
         ? await db.from("portfolio_videos")
-            .update({ title, category, video_type, video_url, thumbnail_url: thumbnail_url || null }).eq("id", id)
+            .update({ title, category, youtube_url }).eq("id", id)
         : await db.from("portfolio_videos")
-            .insert([{ title, category, video_type, video_url, thumbnail_url: thumbnail_url || null }]);
+            .insert([{ title, category, youtube_url }]);
 
       if (error) throw error;
 

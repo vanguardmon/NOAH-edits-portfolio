@@ -7,14 +7,13 @@
   <meta name="theme-color" content="#090909">
   <title>NOAH edits | Abhijith Babu</title>
   <meta name="description" content="Cinematic films, wedding stories, reels and commercial videos by NOAH edits.">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #090909;
       --panel: #141414;
       --text: #f5f2ed;
       --muted: #aaa7a1;
-      --accent: #b7d69b;
+      --accent: #d8b477;
       --line: #292929;
     }
 
@@ -301,57 +300,20 @@
   </div>
 
   <script>
-    const SUPABASE_URL = "https://ibpditpbprwviuveplnt.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_pQEAReBcARVo1_kwEXwNwQ_LlZ0T6Vj";
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-    let projects = [];
+    // Add a project's Google Drive FILE ID in the driveId field.
+    // Example link:
+    // https://drive.google.com/file/d/1AbCdEf123456/view
+    // The FILE ID is: 1AbCdEf123456
+    const projects = [
+      { title: "Wedding Cinematic Film", category: "cinematic", label: "Cinematic Edits", youtubeId: "-b1H8Eg2Mrc" },
+      { title: "Creative Reel", category: "reels", label: "Reels / Shorts", youtubeId: "7SO6bbdrIqQ" },
+      { title: "Brand Commercial", category: "ads", label: "Commercial Ads", driveId: "" },
+      { title: "Creative Project", category: "other", label: "Other Projects", driveId: "" }
+    ];
 
     const grid = document.getElementById("projectGrid");
     const modal = document.getElementById("videoModal");
     const frame = document.getElementById("videoFrame");
-
-    function getEmbedUrl(type, rawUrl) {
-      try {
-        const u = new URL(rawUrl);
-        if (type === "drive") {
-          const match = u.pathname.match(/\/file\/d\/([^/]+)/);
-          const id = match ? match[1] : u.searchParams.get("id");
-          if (!id) throw new Error();
-          return "https://drive.google.com/file/d/" + encodeURIComponent(id) + "/preview";
-        }
-        let id = u.hostname.includes("youtu.be")
-          ? u.pathname.slice(1).split("/")[0]
-          : (u.searchParams.get("v") || u.pathname.split("/").filter(Boolean).pop());
-        if (!id) throw new Error();
-        return "https://www.youtube.com/embed/" + encodeURIComponent(id) + "?autoplay=1";
-      } catch {
-        alert("This video link could not be opened. Please check the link.");
-        return "";
-      }
-    }
-
-    async function loadPortfolioVideos() {
-      const { data, error } = await db.from("portfolio_videos")
-        .select("id,title,category,video_type,video_url,thumbnail_url,youtube_url,created_at")
-        .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Could not load portfolio videos:", error.message);
-        return;
-      }
-      projects = (data || []).map(v => ({
-        ...v,
-        video_type: v.video_type || "youtube",
-        video_url: v.video_url || v.youtube_url || "",
-        label: ({
-          cinematic: "Cinematic Edits",
-          reels: "Reels / Shorts",
-          commercial: "Commercial Ads",
-          ads: "Commercial Ads",
-          other: "Other Projects"
-        })[v.category] || "Other Projects"
-      }));
-      renderProjects();
-    }
 
     function renderProjects(filter = "all") {
       grid.innerHTML = "";
@@ -360,11 +322,6 @@
         card.className = "project";
         const thumb = document.createElement("div");
         thumb.className = "thumbnail";
-        if (p.thumbnail_url) {
-          thumb.style.backgroundImage = `linear-gradient(#0002,#0005), url("${p.thumbnail_url}")`;
-          thumb.style.backgroundSize = "cover";
-          thumb.style.backgroundPosition = "center";
-        }
         const play = document.createElement("span");
         play.className = "play";
         play.textContent = "▶";
@@ -379,13 +336,22 @@
         const link = document.createElement("a");
         link.className = "watch";
         link.href = "#work";
-        link.textContent = p.video_url ? "Watch Film ↗" : "Video link to be added";
+        link.textContent = (p.youtubeId || p.driveId) ? "Watch Film ↗" : "Video link to be added";
         link.addEventListener("click", e => {
           e.preventDefault();
-          if (!p.video_url) return;
-          document.getElementById("modalTitle").textContent = p.title;
-          frame.src = getEmbedUrl(p.video_type, p.video_url);
-          if (frame.src) modal.classList.add("open");
+          if (!p.youtubeId && !p.driveId) {
+    alert("Add a video link first.");
+    return;
+}
+document.getElementById("modalTitle").textContent = p.title;
+
+if (p.youtubeId) {
+    frame.src = "https://www.youtube.com/embed/" + encodeURIComponent(p.youtubeId) + "?autoplay=1";
+} else {
+    frame.src = "https://drive.google.com/file/d/" + encodeURIComponent(p.driveId) + "/preview";
+}
+
+modal.classList.add("open");
         });
         thumb.style.cursor = "pointer";
         thumb.addEventListener("click", () => link.click());
@@ -412,7 +378,7 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape") closeVideo(); });
 
     document.getElementById("year").textContent = new Date().getFullYear();
-    loadPortfolioVideos();
+    renderProjects();
   </script>
 </body>
 </html>
